@@ -3,12 +3,18 @@ import I18n from "I18n";
 import discourseComputed from "discourse-common/utils/decorators";
 
 export default apiInitializer("1.8.0", (api) => {
+  // Defensive check for I18n availability
+  if (!I18n || !I18n.translations) {
+    console.warn("I18n not available, composer placeholders component disabled");
+    return;
+  }
+
   const locale = I18n.currentLocale() || "";
-  const lang = String(locale).split(/[-_]/)[0]; // "en", "ru", etc.
-  const enabled = lang === "en" || lang === "ru";
+  const lang = String(locale).split(/[-_]/)[0] || ""; // "en", "ru", etc.
+  const enabled = lang && (lang === "en" || lang === "ru");
 
   // Only define translations for EN/RU. Other locales stay untouched.
-  if (enabled) {
+  if (enabled && locale) {
     I18n.translations[locale] ||= {};
     I18n.translations[locale].js ||= {};
     I18n.translations[locale].js.composer ||= {};
@@ -26,28 +32,47 @@ export default apiInitializer("1.8.0", (api) => {
     }
   }
 
-  api.modifyClass("component:composer-editor", (Superclass) =>
-    class extends Superclass {
-      @discourseComputed(
-        "composer.model.creatingTopic",
-        "composer.model.replyingToTopic",
-        "composer.model.privateMessage",
-        "composer.model.action"
-      )
-      replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action) {
-        // For non EN/RU locales keep core placeholder behavior intact.
-        if (!enabled) {
-          return super.replyPlaceholder(...arguments);
-        }
-
-        const isPm = !!privateMessage || action === "createPrivateMessage";
-        if (isPm) return "composer.wb_pm_placeholder";
-        if (creatingTopic) return "composer.wb_topic_placeholder";
-        if (replyingToTopic) return "composer.wb_reply_placeholder";
-
-        return "composer.wb_reply_placeholder";
+  try {
+    api.modifyClass("component:composer-editor", (Superclass) => {
+      if (!Superclass) {
+        console.warn("composer-editor component not found");
+        return;
       }
-    }
-  );
+
+      return class extends Superclass {
+        @discourseComputed(
+          "composer.model.creatingTopic",
+          "composer.model.replyingToTopic",
+          "composer.model.privateMessage",
+          "composer.model.action"
+        )
+        replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action) {
+          // Defensive check for I18n availability
+          if (!I18n || !I18n.currentLocale) {
+            return super.replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action);
+          }
+
+          // Compute enabled dynamically to handle locale changes at runtime
+          const currentLocale = I18n.currentLocale() || "";
+          const currentLang = String(currentLocale).split(/[-_]/)[0] || "";
+          const isEnabled = currentLang && (currentLang === "en" || currentLang === "ru");
+
+          // For non EN/RU locales keep core placeholder behavior intact.
+          if (!isEnabled) {
+            return super.replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action);
+          }
+
+          const isPm = !!privateMessage || action === "createPrivateMessage";
+          if (isPm) return "composer.wb_pm_placeholder";
+          if (creatingTopic) return "composer.wb_topic_placeholder";
+          if (replyingToTopic) return "composer.wb_reply_placeholder";
+
+          return "composer.wb_reply_placeholder";
+        }
+      };
+    });
+  } catch (error) {
+    console.error("Failed to modify composer-editor:", error);
+  }
 });
 
