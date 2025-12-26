@@ -20,15 +20,17 @@ export default apiInitializer("1.8.0", (api) => {
     I18n.translations[locale].js.composer ||= {};
 
     if (lang === "en") {
-      I18n.translations[locale].js.composer.wb_reply_placeholder = "Write your reply…";
-      I18n.translations[locale].js.composer.wb_topic_placeholder = "Start a new topic…";
-      I18n.translations[locale].js.composer.wb_pm_placeholder = "Write a private message…";
+      // Only set if not already overridden via /admin/customize/text
+      I18n.translations[locale].js.composer.wb_reply_placeholder ||= "Write your reply…";
+      I18n.translations[locale].js.composer.wb_topic_placeholder ||= "Start a new topic…";
+      I18n.translations[locale].js.composer.wb_pm_placeholder ||= "Write a private message…";
     }
 
     if (lang === "ru") {
-      I18n.translations[locale].js.composer.wb_reply_placeholder = "Напишите ответ…";
-      I18n.translations[locale].js.composer.wb_topic_placeholder = "Создайте новую тему…";
-      I18n.translations[locale].js.composer.wb_pm_placeholder = "Напишите личное сообщение…";
+      // Only set if not already overridden via /admin/customize/text
+      I18n.translations[locale].js.composer.wb_reply_placeholder ||= "Напишите ответ…";
+      I18n.translations[locale].js.composer.wb_topic_placeholder ||= "Создайте новую тему…";
+      I18n.translations[locale].js.composer.wb_pm_placeholder ||= "Напишите личное сообщение…";
     }
   }
 
@@ -63,6 +65,10 @@ export default apiInitializer("1.8.0", (api) => {
           }
 
           const isPm = !!privateMessage || action === "createPrivateMessage";
+          
+          // Return translation keys - the component will translate them using I18n.t()
+          // Overrides from /admin/customize/text will be respected when I18n.t() is called
+          // Note: Discourse automatically looks in js.* namespace, so we use "composer.*" format
           if (isPm) return "composer.wb_pm_placeholder";
           if (creatingTopic) return "composer.wb_topic_placeholder";
           if (replyingToTopic) return "composer.wb_reply_placeholder";
