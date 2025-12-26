@@ -121,6 +121,7 @@ The component:
 
 ```
 discourse-wb-composer-placeholeders/
+├── about.json         # Theme component metadata (required)
 ├── component.js       # Main component logic
 ├── README.md          # This file
 └── locales/
