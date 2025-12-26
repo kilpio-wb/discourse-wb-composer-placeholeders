@@ -4,12 +4,12 @@
   "about_url": null,
   "license_url": null,
   "authors": null,
-  "theme_version": "1.0.1",
+  "theme_version": "1.0.2",
   "minimum_discourse_version": "3.0.0",
   "maximum_discourse_version": null,
   "assets": {},
   "color_schemes": {},
   "modifiers": {},
-  "learn_more": "https://github.com/kilpio-wb/wb-allow-solved-pms/tree/discourse-wb-composer-placeholeders"
+  "learn_more": "https://github.com/kilpio-wb/tree/discourse-wb-composer-placeholeders"
 }
 
