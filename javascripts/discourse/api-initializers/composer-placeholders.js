@@ -2,12 +2,7 @@ import { apiInitializer } from "discourse/lib/api";
 import I18n from "I18n";
 import discourseComputed from "discourse-common/utils/decorators";
 
-// IMPORTANT:
-// Do NOT import themePrefix in a theme/component.
-// It is already available in the theme build context, and importing it causes compile errors.
-// (The compiler injects it via `virtual:theme`.) :contentReference[oaicite:1]{index=1}
-
-const DEBUG = true;
+const DEBUG = false;
 const log = (...args) => DEBUG && console.log("[WB Composer Placeholders]", ...args);
 
 function getLocaleLang() {
@@ -27,9 +22,6 @@ function isEnabledLang(lang) {
 function keyForContext({ creatingTopic, replyingToTopic, privateMessage, action }) {
   const isPm = !!privateMessage || action === "createPrivateMessage";
 
-  // Your theme locale files contain:
-  // en: js: composer: wb_reply_placeholder / wb_topic_placeholder / wb_pm_placeholder
-  // so we reference those exact keys (and theme UI overrides can override them).
   if (isPm) return themePrefix("js.composer.wb_pm_placeholder");
   if (creatingTopic) return themePrefix("js.composer.wb_topic_placeholder");
   if (replyingToTopic) return themePrefix("js.composer.wb_reply_placeholder");
@@ -79,7 +71,7 @@ export default apiInitializer("1.8.0", (api) => {
         log("replyPlaceholder key", key);
         log("preview I18n.t(key)", I18n.t(key));
 
-        // Return a translation key; Discourse editor will translate it
+        // Return a translation key, Discourse editor will translate it
         return key;
       }
     };
