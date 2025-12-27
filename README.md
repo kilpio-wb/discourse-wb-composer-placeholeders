@@ -1,76 +1,80 @@
 # Discourse Composer Placeholders
 
-A custom Discourse theme component (compatible with Discourse 2025.11+) that overrides placeholder text in the composer editor for a more personalized experience.
+A custom Discourse theme component that customizes placeholder text in the composer editor based on context (reply, new topic, or private message).
 
 ## Overview
 
-This component customizes the placeholder text shown in Discourse's composer editor based on the context (reply, new topic, or private message) and supports multiple locales. It includes robust error handling, dynamic locale detection, and full support for customization via Discourse's admin interface.
+This component overrides the `replyPlaceholder` method in Discourse's `composer-editor` component to provide context-aware placeholder text. It uses Discourse's theme translation system with `themePrefix()` to support both default translations and admin overrides.
 
 ## Features
 
-- ✨ Custom placeholder text for different composer contexts
-- 🌍 Multi-language support (English and Russian)
-- 🔄 Graceful fallback to default placeholders for unsupported locales
-- ⚙️ **Admin customization** - Override placeholders via `/admin/customize/text`
-- 🛡️ Robust error handling and defensive programming
-- 🔀 Dynamic locale detection at runtime
-- 🎯 Context-aware placeholders:
-  - **Replies**: "Write your reply…" / "Напишите ответ…"
-  - **New Topics**: "Start a new topic…" / "Создайте новую тему…"
-  - **Private Messages**: "Write a private message…" / "Напишите личное сообщение…"
+- ✨ **Context-aware placeholders** - Different text for replies, new topics, and private messages
+- 🌍 **Multi-language support** - English and Russian included, easily extensible
+- 🔄 **Graceful fallback** - Uses default Discourse placeholders for unsupported locales
+- ⚙️ **Admin customization** - Override placeholders via Theme Translations in admin panel
+- 🛡️ **Robust error handling** - Validates dependencies and handles errors gracefully
+- 🔀 **Dynamic locale detection** - Automatically adapts to user's current locale
 
 ## Requirements
 
-- Discourse version 2025.11 or higher
+- Discourse version 3.0.0 or higher
 - Theme component support enabled
 
 ## Installation
 
-1. **Clone or download this repository** to your Discourse server
-
-2. **Add as a theme component**:
-   - Go to Admin → Customize → Themes
+1. **Add as a theme component**:
+   - Go to **Admin → Customize → Themes**
    - Create a new theme or edit an existing one
-   - Click "Add Component" → "From Git Repository"
-   - Enter the repository URL or path to this component
-   - Alternatively, you can add it as a local component by uploading the files
+   - Click **"Add Component"** → **"From Git Repository"**
+   - Enter the repository URL: `https://github.com/kilpio-wb/discourse-wb-composer-placeholeders`
+   - Or add it as a local component by uploading the files
 
-3. **Enable the component**:
+2. **Enable the component**:
    - Ensure the component is enabled in your theme
-   - The changes will take effect immediately
+   - Changes take effect immediately after saving
 
-## Supported Locales
+## Default Placeholders
 
-Currently supports:
-- **English (en)**: Custom placeholders with ellipsis
-- **Russian (ru)**: Custom placeholders in Russian
+The component includes default placeholders for English and Russian:
 
-For all other locales, the component preserves Discourse's default placeholder behavior.
+**English:**
+- Replies: "Write your reply!…"
+- New Topics: "Start a new topic!…"
+- Private Messages: "Write a private message!…"
+
+**Russian:**
+- Replies: "Напишите ответ…"
+- New Topics: "Создайте новую тему…"
+- Private Messages: "Напишите личное сообщение…"
 
 ## Customization
 
-### Via Admin Interface (Recommended)
+### Via Admin Interface (Theme Translations)
 
-You can customize the placeholder text directly from Discourse's admin panel:
+You can override the default placeholders directly from the Discourse admin panel:
 
-1. Go to **Admin → Customize → Text** (`/admin/customize/text`)
-2. Search for one of these translation keys:
+1. Go to **Admin → Customize → Themes**
+2. Select your theme
+3. Find the **"Composer Placeholders"** component
+4. Click on the component to open its settings
+5. Go to the **"Translations"** tab
+6. Override any of these translation keys:
    - `js.composer.wb_reply_placeholder`
    - `js.composer.wb_topic_placeholder`
    - `js.composer.wb_pm_placeholder`
-3. Override with your custom text
-4. Changes take effect immediately
+7. Enter your custom text
+8. Save the theme
 
 **Translation Priority** (highest to lowest):
-1. Overrides from `/admin/customize/text` (highest priority)
-2. Translations from `locales/*.yml` files
-3. Defaults set in `javascripts/discourse/api-initializers/composer-placeholders.js` (lowest priority)
+1. Theme Translations overrides (set in admin panel) - **Highest priority**
+2. Translations from `locales/*.yml` files (defaults)
+3. Default Discourse placeholders (fallback for unsupported locales)
 
-### Via Code
+### Via Code (Adding New Languages)
 
 To add support for additional languages:
 
-1. **Add locale file**: Create `locales/[lang].yml` with translations:
+1. **Create a locale file**: `locales/[lang].yml`
    ```yaml
    [lang]:
      js:
@@ -80,68 +84,85 @@ To add support for additional languages:
          wb_pm_placeholder: "Your translation…"
    ```
 
-2. **Update `javascripts/discourse/api-initializers/composer-placeholders.js`**: Add the language check in the `enabled` condition (line 14):
+2. **Update the language check** in `javascripts/discourse/api-initializers/composer-placeholders.js`:
    ```javascript
-   const enabled = lang && (lang === "en" || lang === "ru" || lang === "fr");
-   ```
-
-3. **Add JavaScript defaults** (optional, as fallback):
-   ```javascript
-   if (lang === "fr") {
-     I18n.translations[locale].js.composer.wb_reply_placeholder ||= "Écrivez votre réponse…";
-     I18n.translations[locale].js.composer.wb_topic_placeholder ||= "Créer un nouveau sujet…";
-     I18n.translations[locale].js.composer.wb_pm_placeholder ||= "Écrire un message privé…";
+   function isEnabledLang(lang) {
+     return lang === "en" || lang === "ru" || lang === "fr"; // Add your language
    }
    ```
 
 ## How It Works
 
-The component:
+1. **Initialization**: 
+   - Validates that `themePrefix` is available (required for theme translations)
+   - Exits gracefully if dependencies are missing
 
-1. **Initialization**: Checks for I18n availability and sets up default translations
-2. **Locale Detection**: Dynamically detects the current locale at runtime (handles locale changes)
-3. **Translation Setup**: Defines custom translation keys for supported languages (en/ru)
-4. **Component Override**: Overrides the `replyPlaceholder` computed property in the `composer-editor` component
-5. **Context Resolution**: Returns the appropriate placeholder based on the composer context:
-   - Private message mode
-   - Creating a new topic
-   - Replying to an existing topic
+2. **Component Override**:
+   - Extends the `composer-editor` component
+   - Overrides the `replyPlaceholder` computed property
+
+3. **Context Detection**:
+   - Detects composer context (reply, new topic, or private message)
+   - Determines current locale dynamically
+
+4. **Translation Resolution**:
+   - Uses `themePrefix()` to generate theme-specific translation keys
+   - Returns translation keys that Discourse's I18n system resolves
+   - Falls back to default Discourse behavior for unsupported locales
+
+5. **Error Handling**:
+   - Validates I18n availability
+   - Checks locale support
+   - Falls back to super method if anything fails
 
 ## Technical Details
 
-- Uses Discourse's API initializer (version 1.8.0+)
-- Leverages `I18n` for internationalization
-- Extends the `composer-editor` component using Discourse's class modification system
-- Uses `@discourseComputed` decorator for reactive placeholder updates
-- Includes defensive checks for I18n availability
-- Handles errors gracefully with try-catch blocks
-- Supports runtime locale changes (dynamic locale detection)
+- **API Version**: Uses Discourse API initializer version 1.8.0+
+- **Translation System**: Uses `themePrefix()` from `virtual:theme` for theme-specific translations
+- **Component Extension**: Extends `component:composer-editor` using Discourse's class modification system
+- **Reactive Updates**: Uses `@discourseComputed` decorator for automatic updates when composer state changes
+- **Error Handling**: Comprehensive try-catch blocks and validation checks
+- **Defensive Programming**: Multiple fallback mechanisms to ensure stability
 
 ## File Structure
 
 ```
 discourse-wb-composer-placeholeders/
-├── about.json         # Theme component metadata (required)
-├── README.md          # This file
+├── about.json                                    # Theme component metadata
+├── README.md                                     # This file
 ├── javascripts/
 │   └── discourse/
 │       └── api-initializers/
-│           └── composer-placeholders.js  # Main component logic
+│           └── composer-placeholders.js          # Main component logic
 └── locales/
-    ├── en.yml         # English translations
-    └── ru.yml          # Russian translations
+    ├── en.yml                                    # English translations
+    └── ru.yml                                    # Russian translations
 ```
 
 ## Security & Robustness
 
-The component includes several robustness features:
+The component includes several safety features:
 
-- ✅ Defensive checks for I18n availability
-- ✅ Error handling around component modification
-- ✅ Validation of locale format
-- ✅ Graceful fallback to default behavior
-- ✅ Dynamic locale detection (handles runtime changes)
-- ✅ Safe translation key assignment (only sets if not overridden)
+- ✅ **Dependency Validation**: Checks for `themePrefix` and `I18n` availability
+- ✅ **Error Handling**: Try-catch blocks around critical operations
+- ✅ **Graceful Fallbacks**: Falls back to default Discourse behavior on errors
+- ✅ **Input Validation**: Validates locale format and component state
+- ✅ **Defensive Programming**: Multiple safety checks and null handling
+- ✅ **No Runtime Injection**: Uses Discourse's built-in translation system
+
+## Debugging
+
+The component includes optional debug logging. To enable it, set `DEBUG = true` in `composer-placeholders.js`:
+
+```javascript
+const DEBUG = true; // Change from false to true
+```
+
+This will log context information, translation keys, and resolution results to the browser console.
+
+## Version
+
+Current version: **1.1.1**
 
 ## License
 
@@ -149,4 +170,6 @@ This component is provided as-is for use with Discourse forums.
 
 ## Support
 
-For issues or questions, please refer to your Discourse installation's support channels or create an issue in the repository.
+For issues or questions:
+- Check the [GitHub repository](https://github.com/kilpio-wb/discourse-wb-composer-placeholeders)
+- Refer to your Discourse installation's support channels
