@@ -64,7 +64,7 @@ You can customize the placeholder text directly from Discourse's admin panel:
 **Translation Priority** (highest to lowest):
 1. Overrides from `/admin/customize/text` (highest priority)
 2. Translations from `locales/*.yml` files
-3. Defaults set in `component.js` (lowest priority)
+3. Defaults set in `javascripts/discourse/api-initializers/composer-placeholders.js` (lowest priority)
 
 ### Via Code
 
@@ -80,7 +80,7 @@ To add support for additional languages:
          wb_pm_placeholder: "Your translation…"
    ```
 
-2. **Update component.js**: Add the language check in the `enabled` condition (line 14):
+2. **Update `javascripts/discourse/api-initializers/composer-placeholders.js`**: Add the language check in the `enabled` condition (line 14):
    ```javascript
    const enabled = lang && (lang === "en" || lang === "ru" || lang === "fr");
    ```
@@ -122,11 +122,14 @@ The component:
 ```
 discourse-wb-composer-placeholeders/
 ├── about.json         # Theme component metadata (required)
-├── component.js       # Main component logic
 ├── README.md          # This file
+├── javascripts/
+│   └── discourse/
+│       └── api-initializers/
+│           └── composer-placeholders.js  # Main component logic
 └── locales/
     ├── en.yml         # English translations
-    └── ru.yml         # Russian translations
+    └── ru.yml          # Russian translations
 ```
 
 ## Security & Robustness
