@@ -1,75 +1,47 @@
 import { apiInitializer } from "discourse/lib/api";
 import I18n from "I18n";
 import discourseComputed from "discourse-common/utils/decorators";
-import { themePrefix } from "discourse/lib/theme-prefix";
 
-/**
- * WB Composer Placeholders
- *
- * Goal:
- * - Use ONLY theme translations (locales/*.yml + overrides in the Theme UI “yellow boxes”).
- * - Do NOT write into I18n.translations at runtime (that tends to bypass/override the theme UI).
- * - Apply only for EN/RU, keep core behavior intact for other locales.
- *
- * Expected locale keys in your theme component:
- *
- * en:
- *   js:
- *     composer:
- *       wb_reply_placeholder: "..."
- *       wb_topic_placeholder: "..."
- *       wb_pm_placeholder: "..."
- *
- * ru:
- *   js:
- *     composer:
- *       wb_reply_placeholder: "..."
- *       wb_topic_placeholder: "..."
- *       wb_pm_placeholder: "..."
- *
- * In Admin → Customize → Themes → (your component) → Translations,
- * override these keys:
- * - js.composer.wb_reply_placeholder
- * - js.composer.wb_topic_placeholder
- * - js.composer.wb_pm_placeholder
- */
+// IMPORTANT:
+// Do NOT import themePrefix in a theme/component.
+// It is already available in the theme build context, and importing it causes compile errors.
+// (The compiler injects it via `virtual:theme`.) :contentReference[oaicite:1]{index=1}
 
-const DEBUG = false;
-const LOG = (...args) => DEBUG && console.log("[WB Composer Placeholders]", ...args);
+const DEBUG = true;
+const log = (...args) => DEBUG && console.log("[WB Composer Placeholders]", ...args);
 
-function currentLang() {
+function getLocaleLang() {
   try {
-    const loc = typeof I18n?.currentLocale === "function" ? I18n.currentLocale() : "";
-    return String(loc || "").split(/[-_]/)[0] || "";
+    const locale = typeof I18n?.currentLocale === "function" ? I18n.currentLocale() : "";
+    const lang = String(locale || "").split(/[-_]/)[0] || "";
+    return { locale, lang };
   } catch {
-    return "";
+    return { locale: "", lang: "" };
   }
 }
 
-function enabledForLocale() {
-  const lang = currentLang();
+function isEnabledLang(lang) {
   return lang === "en" || lang === "ru";
 }
 
 function keyForContext({ creatingTopic, replyingToTopic, privateMessage, action }) {
   const isPm = !!privateMessage || action === "createPrivateMessage";
 
+  // Your theme locale files contain:
+  // en: js: composer: wb_reply_placeholder / wb_topic_placeholder / wb_pm_placeholder
+  // so we reference those exact keys (and theme UI overrides can override them).
   if (isPm) return themePrefix("js.composer.wb_pm_placeholder");
   if (creatingTopic) return themePrefix("js.composer.wb_topic_placeholder");
   if (replyingToTopic) return themePrefix("js.composer.wb_reply_placeholder");
 
-  // Default fallback: treat as reply
+  // Fallback: treat as reply
   return themePrefix("js.composer.wb_reply_placeholder");
 }
 
 export default apiInitializer("1.8.0", (api) => {
-  LOG("initializer loaded", {
-    locale: typeof I18n?.currentLocale === "function" ? I18n.currentLocale() : "N/A",
-  });
+  log("MODULE LOADED");
 
   api.modifyClass("component:composer-editor", (Superclass) => {
-    if (!Superclass) return;
-
     return class extends Superclass {
       @discourseComputed(
         "composer.model.creatingTopic",
@@ -78,14 +50,22 @@ export default apiInitializer("1.8.0", (api) => {
         "composer.model.action"
       )
       replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action) {
-        // For non EN/RU locales keep core placeholder behavior intact.
-        if (!enabledForLocale()) {
+        // If I18n isn't available, fall back to core behavior
+        if (!I18n || typeof I18n.currentLocale !== "function") {
+          log("I18n missing, using super");
+          return super.replyPlaceholder(...arguments);
+        }
+
+        const { locale, lang } = getLocaleLang();
+
+        // Keep core behavior intact for all other languages
+        if (!isEnabledLang(lang)) {
           return super.replyPlaceholder(...arguments);
         }
 
         const model = this.composer?.model;
 
-        // Prefer args, fallback to model (defensive)
+        // Use args first, then model fallback (defensive)
         const ctx = {
           creatingTopic: creatingTopic ?? model?.creatingTopic ?? false,
           replyingToTopic: replyingToTopic ?? model?.replyingToTopic ?? false,
@@ -95,10 +75,11 @@ export default apiInitializer("1.8.0", (api) => {
 
         const key = keyForContext(ctx);
 
-        LOG("replyPlaceholder ctx", ctx);
-        LOG("replyPlaceholder key", key);
-        LOG("replyPlaceholder translated preview", I18n?.t ? I18n.t(key) : "(no I18n.t)");
+        log("replyPlaceholder ctx", { locale, lang, ...ctx });
+        log("replyPlaceholder key", key);
+        log("preview I18n.t(key)", I18n.t(key));
 
+        // Return a translation key; Discourse editor will translate it
         return key;
       }
     };
