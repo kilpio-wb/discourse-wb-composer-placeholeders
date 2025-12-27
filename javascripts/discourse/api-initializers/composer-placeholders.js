@@ -274,12 +274,11 @@ try {
           console.log("[WB Composer Placeholders] Final translation resolution:", {
             translationKey,
             translationKeyName,
-            hasOverride,
-            overrideValue,
             directAccess: finalValue,
             viaI18nT: I18n.t(translationKey),
             finalResult: translated,
-            note: hasOverride ? "Override used" : (finalValue ? "Default/translation used" : "Fallback used")
+            wasMissing: isMissingTranslation,
+            note: isMissingTranslation ? "Default was set" : (finalValue ? "Translation found (locale file or override)" : "Using I18n.t() result")
           });
           
           // Return the translated string directly (I18n.t() handles overrides)
