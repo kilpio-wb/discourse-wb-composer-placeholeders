@@ -256,12 +256,12 @@ try {
               "Напишите ответ…"
             );
             
-            // Set the default
+            // Set the default translation
             I18n.translations[currentLocale].js.composer[fullKeyName] = defaultValue;
-            translated = defaultValue;
             
             console.log("[WB Composer Placeholders] Set default translation:", {
               key: fullKeyName,
+              translationKey: translationKey,
               value: defaultValue,
               reason: "I18n.t() returned missing translation format"
             });
@@ -269,20 +269,22 @@ try {
             console.log("[WB Composer Placeholders] Using existing translation (from locale file or override):", translated);
           }
           
+          // Verify the translation is now available
           const finalValue = I18n.translations[currentLocale]?.js?.composer?.[fullKeyName];
+          const verifyI18nT = I18n.t(translationKey);
           
           console.log("[WB Composer Placeholders] Final translation resolution:", {
             translationKey,
             translationKeyName,
             directAccess: finalValue,
-            viaI18nT: I18n.t(translationKey),
-            finalResult: translated,
+            viaI18nT: verifyI18nT,
             wasMissing: isMissingTranslation,
-            note: isMissingTranslation ? "Default was set" : (finalValue ? "Translation found (locale file or override)" : "Using I18n.t() result")
+            note: isMissingTranslation ? "Default was set, returning key for component to translate" : (finalValue ? "Translation found (locale file or override)" : "Using I18n.t() result")
           });
           
-          // Return the translated string directly (I18n.t() handles overrides)
-          return translated;
+          // Return the translation key - the component will call I18n.t() on it
+          // Now that we've ensured the translation exists, I18n.t() will find it
+          return translationKey;
         }
       };
     });
