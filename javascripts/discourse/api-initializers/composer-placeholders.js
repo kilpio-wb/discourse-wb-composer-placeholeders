@@ -19,9 +19,30 @@ function isEnabledLang(lang) {
   return lang === "en" || lang === "ru";
 }
 
+function getOwnTranslation(locale, key) {
+  try {
+    if (!locale || !key) return undefined;
+    const base = String(locale).split(/[-_]/)[0] || "";
+    const root = I18n?.translations?.[locale] || (base && I18n?.translations?.[base]);
+    if (!root) return undefined;
+    const parts = String(key).split(".");
+    let obj = root;
+    for (let i = 0; i < parts.length; i++) {
+      if (obj == null) return undefined;
+      obj = obj[parts[i]];
+    }
+    return obj;
+  } catch {
+    return undefined;
+  }
+}
+
 function keyForContext({ creatingTopic, replyingToTopic, privateMessage, action }) {
-  if (typeof themePrefix !== "function") {
+  // Validate themePrefix is available
+  if (typeof themePrefix !== 'function') {
     console.error("[WB Composer Placeholders] themePrefix not available");
+    // Fallback to default Discourse behavior by returning undefined/null
+    // This will cause the component to use its default placeholder
     return null;
   }
 
@@ -31,13 +52,15 @@ function keyForContext({ creatingTopic, replyingToTopic, privateMessage, action 
   if (creatingTopic) return themePrefix("js.composer.wb_topic_placeholder");
   if (replyingToTopic) return themePrefix("js.composer.wb_reply_placeholder");
 
+  // Fallback: treat as reply
   return themePrefix("js.composer.wb_reply_placeholder");
 }
 
 export default apiInitializer("1.8.0", (api) => {
   log("MODULE LOADED");
 
-  if (typeof themePrefix !== "function") {
+  // Validate themePrefix at initialization
+  if (typeof themePrefix !== 'function') {
     console.error("[WB Composer Placeholders] themePrefix not available, component disabled");
     return;
   }
@@ -57,25 +80,22 @@ export default apiInitializer("1.8.0", (api) => {
           "composer.model.action"
         )
         replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action) {
+          // If I18n isn't available, fall back to core behavior
           if (!I18n || typeof I18n.currentLocale !== "function") {
             log("I18n missing, using super");
-            const s = super.replyPlaceholder;
-            return typeof s === "function"
-              ? s.call(this, creatingTopic, replyingToTopic, privateMessage, action)
-              : s;
+            return super.replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action);
           }
 
           const { locale, lang } = getLocaleLang();
 
+          // Keep core behavior intact for all other languages
           if (!isEnabledLang(lang)) {
-            const s = super.replyPlaceholder;
-            return typeof s === "function"
-              ? s.call(this, creatingTopic, replyingToTopic, privateMessage, action)
-              : s;
+            return super.replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action);
           }
 
           const model = this.composer?.model;
 
+          // Use args first, then model fallback (defensive)
           const ctx = {
             creatingTopic: creatingTopic ?? model?.creatingTopic ?? false,
             replyingToTopic: replyingToTopic ?? model?.replyingToTopic ?? false,
@@ -85,30 +105,22 @@ export default apiInitializer("1.8.0", (api) => {
 
           const key = keyForContext(ctx);
 
+          // If keyForContext returned null (themePrefix unavailable), fall back to super
           if (key === null) {
-            const s = super.replyPlaceholder;
-            return typeof s === "function"
-              ? s.call(this, creatingTopic, replyingToTopic, privateMessage, action)
-              : s;
+            return super.replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action);
           }
 
-          const translated = I18n.t(key);
-          const isMissing =
-            typeof translated === "string" &&
-            translated.startsWith(`[${locale}.`) &&
-            translated.endsWith("]");
+          const direct = getOwnTranslation(locale, key);
 
-          if (isMissing) {
-            const s = super.replyPlaceholder;
-            return typeof s === "function"
-              ? s.call(this, creatingTopic, replyingToTopic, privateMessage, action)
-              : s;
+          if (typeof direct !== "string" || direct.trim().length === 0) {
+            return super.replyPlaceholder(creatingTopic, replyingToTopic, privateMessage, action);
           }
 
           log("replyPlaceholder ctx", { locale, lang, ...ctx });
           log("replyPlaceholder key", key);
-          log("preview I18n.t(key)", translated);
+          log("preview I18n.t(key)", I18n.t(key));
 
+          // Return a translation key, Discourse editor will translate it
           return key;
         }
       };
@@ -118,7 +130,7 @@ export default apiInitializer("1.8.0", (api) => {
     console.error("[WB Composer Placeholders] Error details:", {
       message: error.message,
       stack: error.stack,
-      name: error.name,
+      name: error.name
     });
   }
 });
