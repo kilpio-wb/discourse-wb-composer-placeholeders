@@ -1,7 +1,7 @@
 en:
   js:
     composer:
-      wb_reply_placeholder: "Write your reply!…"
-      wb_topic_placeholder: "Start a new topic!…"
-      wb_pm_placeholder: "Write a private message!…"
+      wb_reply_placeholder: "Type here. Use Markdown, BBCode, or HTML to format. Drag or paste images."
+      wb_topic_placeholder: "Type here. Use Markdown, BBCode, or HTML to format. Drag or paste images."
+      wb_pm_placeholder: "Type here. Use Markdown, BBCode, or HTML to format. Drag or paste images."
 

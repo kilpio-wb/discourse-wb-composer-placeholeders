@@ -20,32 +20,16 @@ This component overrides the `replyPlaceholder` method in Discourse's `composer-
 - Discourse version 3.0.0 or higher
 - Theme component support enabled
 
-## Installation
+## Installation (Discourse 2025.11)
 
-1. **Add as a theme component**:
-   - Go to **Admin → Customize → Themes**
-   - Create a new theme or edit an existing one
-   - Click **"Add Component"** → **"From Git Repository"**
-   - Enter the repository URL: `https://github.com/kilpio-wb/discourse-wb-composer-placeholeders`
-   - Or add it as a local component by uploading the files
-
-2. **Enable the component**:
-   - Ensure the component is enabled in your theme
-   - Changes take effect immediately after saving
-
-## Default Placeholders
-
-The component includes default placeholders for English and Russian:
-
-**English:**
-- Replies: "Write your reply!…"
-- New Topics: "Start a new topic!…"
-- Private Messages: "Write a private message!…"
-
-**Russian:**
-- Replies: "Напишите ответ…"
-- New Topics: "Создайте новую тему…"
-- Private Messages: "Напишите личное сообщение…"
+1. Go to **Admin → Appearance → Themes and components**  
+   (or open `/admin/config/customize/themes` directly).
+2. Open the **Components** tab.
+3. Click **Install**.
+4. Choose **From a Git repository**.
+5. Paste the repository URL: `https://github.com/kilpio-wb/discourse-wb-composer-placeholeders`
+6. Click **Install**.
+7. Select themes  **Include component on these themes** to add the component to your active theme.
 
 ## Customization
 
@@ -53,10 +37,9 @@ The component includes default placeholders for English and Russian:
 
 You can override the default placeholders directly from the Discourse admin panel:
 
-1. Go to **Admin → Customize → Themes**
-2. Select your theme
+1. Go to **Admin → Appearance → Themes & components → Components**
 3. Find the **"Composer Placeholders"** component
-4. Click on the component to open its settings
+4. Click on the component to open its settings (you may press **Edit** button also)
 5. Go to the **"Translations"** tab
 6. Override any of these translation keys:
    - `js.composer.wb_reply_placeholder`
@@ -162,7 +145,7 @@ This will log context information, translation keys, and resolution results to t
 
 ## Version
 
-Current version: **1.1.1**
+Current version: **1.1.2**
 
 ## License
 

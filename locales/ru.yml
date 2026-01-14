@@ -1,7 +1,7 @@
 ru:
   js:
     composer:
-      wb_reply_placeholder: "Напишите ответ…"
-      wb_topic_placeholder: "Создайте новую тему…"
-      wb_pm_placeholder: "Напишите личное сообщение…"
+      wb_reply_placeholder: "Введите текст здесь. Поддерживаемые форматы: Markdown, BBCode и HTML. Чтобы вставить картинку, перетащите её сюда."
+      wb_topic_placeholder: "Введите текст здесь. Поддерживаемые форматы: Markdown, BBCode и HTML. Чтобы вставить картинку, перетащите её сюда."
+      wb_pm_placeholder: "Введите текст здесь. Поддерживаемые форматы: Markdown, BBCode и HTML. Чтобы вставить картинку, перетащите её сюда."
 
