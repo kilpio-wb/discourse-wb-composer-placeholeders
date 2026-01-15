@@ -1,10 +1,10 @@
 {
-  "name": "Composer Placeholders",
+  "name": "WB Composer Placeholders",
   "component": true,
   "about_url": null,
   "license_url": null,
   "authors": null,
-  "theme_version": "1.1.9,
+  "theme_version": "1.1.10",
   "minimum_discourse_version": "3.0.0",
   "maximum_discourse_version": null,
   "assets": {},
