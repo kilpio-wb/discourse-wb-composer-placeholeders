@@ -25,50 +25,96 @@ function getLocaleLang() {
   }
 }
 
+function normLocale(l) {
+  return String(l || "").replace(/_/g, "-").toLowerCase();
+}
+
+function getDefaultLocale() {
+  // i18n-js v4 uses defaultLocale; older variants sometimes expose default_locale
+  const dl = I18n?.defaultLocale ?? I18n?.default_locale;
+  return dl ? String(dl) : "";
+}
+
 function tForLocale(locale, key) {
   if (!locale || !key || typeof I18n?.t !== "function") return undefined;
 
-  // Prefer per-call locale if supported; fall back to temporary global switch.
+  // Prefer per-call locale if supported
   try {
-    const v = I18n.t(key, { locale, defaultValue: null });
-    if (v != null) return v;
+    return I18n.t(key, { locale });
   } catch {
-    // ignore
+    // fallback to temporarily switching global locale
   }
 
-  const hadLocale = Object.prototype.hasOwnProperty.call(I18n, "locale");
-  const oldLocale = I18n.locale;
+  const hasLocaleProp = "locale" in I18n;
+  const oldLocale = hasLocaleProp ? I18n.locale : undefined;
 
   try {
-    if (hadLocale) I18n.locale = locale;
-    return I18n.t(key, { defaultValue: null });
-  } catch {
-    return undefined;
+    if (hasLocaleProp) I18n.locale = locale;
+    return I18n.t(key);
   } finally {
-    if (hadLocale) I18n.locale = oldLocale;
+    if (hasLocaleProp) I18n.locale = oldLocale;
   }
 }
 
-function hasNonEmptyTranslation(locale, lang, key) {
-  const v = tForLocale(locale, key);
+function isMissingValue(locale, key, v) {
+  if (v == null) return true;
+  if (typeof v !== "string") return false;
 
-  if (typeof v === "string") {
-    const s = v.trim();
-    if (!s) return false;
+  const s = v.trim();
+  if (s.length === 0) return true;
 
-    const loc = String(locale || "").toLowerCase();
-    const base = String(lang || "").toLowerCase();
-    const isEnglish = loc === "en" || loc.startsWith("en-") || loc.startsWith("en_") || base === "en";
-
-    if (isEnglish) return true;
-
-    const en = tForLocale("en", key) ?? tForLocale("en_US", key) ?? tForLocale("en-US", key);
-    if (typeof en === "string") return s !== en.trim();
-
+  // common "missing translation" markers
+  if (
+    s.startsWith(`[${locale}.`) ||
+    s.startsWith(`[${String(locale).replace(/-/g, "_")}.`) ||
+    s.startsWith("[missing") ||
+    s.startsWith("translation missing:") ||
+    s === key
+  ) {
     return true;
   }
 
-  return v != null;
+  return false;
+}
+
+function hasNonEmptyTranslation(locale, lang, key) {
+  // Check current locale first, then base language (de-DE -> de)
+  return (
+    hasExplicitOverrideForLocale(locale, key) ||
+    (lang && lang !== locale && hasExplicitOverrideForLocale(lang, key))
+  );
+}
+
+function hasExplicitOverrideForLocale(locale, key) {
+  if (!locale || !key) return false;
+
+  const v = tForLocale(locale, key);
+  if (isMissingValue(locale, key, v)) return false;
+
+  const s = typeof v === "string" ? v.trim() : v;
+
+  const nLoc = normLocale(locale);
+
+  // Compare against english
+  const en = "en";
+  if (nLoc !== "en") {
+    const vEn = tForLocale(en, key);
+    if (!isMissingValue(en, key, vEn) && typeof vEn === "string" && vEn.trim() === s) {
+      return false; // fallback-to-en, not an explicit locale value
+    }
+  }
+
+  // Compare against default locale (often your site default; on your instance likely "ru")
+  const def = getDefaultLocale();
+  const nDef = normLocale(def);
+  if (def && nDef && nDef !== nLoc) {
+    const vDef = tForLocale(def, key);
+    if (!isMissingValue(def, key, vDef) && typeof vDef === "string" && vDef.trim() === s) {
+      return false; // fallback-to-default-locale (e.g. ru), not explicit
+    }
+  }
+
+  return true;
 }
 
 function keyForContext({ creatingTopic, replyingToTopic, privateMessage, action }) {
