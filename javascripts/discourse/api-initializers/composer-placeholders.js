@@ -53,13 +53,63 @@ function getTranslationValueForLocale(locale, key) {
   }, root);
 }
 
-function hasNonEmptyTranslation(locale, lang, key) {
-  const v =
-    getTranslationValueForLocale(locale, key) ??
-    (lang && getTranslationValueForLocale(lang, key));
+function tNoFallbackForLocale(locale, key) {
+  if (!locale || !key || typeof I18n?.t !== "function") return undefined;
 
-  if (typeof v === "string") return v.trim().length > 0;
-  return v != null;
+  const hasLocaleProp = "locale" in I18n;
+  const oldLocale = hasLocaleProp ? I18n.locale : undefined;
+
+  const canToggleFallback = typeof I18n.enableFallback === "boolean";
+  const oldEnableFallback = canToggleFallback ? I18n.enableFallback : undefined;
+
+  try {
+    if (canToggleFallback) I18n.enableFallback = false;
+
+    // Try per-call locale first (harmless if ignored)
+    let v;
+    try {
+      v = I18n.t(key, { locale });
+    } catch {
+      v = undefined;
+    }
+
+    // If per-call locale is not supported, temporarily switch global locale
+    if (v == null && hasLocaleProp) {
+      I18n.locale = locale;
+      v = I18n.t(key);
+    } else if (v == null) {
+      v = I18n.t(key);
+    }
+
+    if (typeof v === "string") {
+      const s = v.trim();
+      // Consider various "missing translation" markers as missing
+      if (
+        s.startsWith(`[${locale}.`) ||
+        s.startsWith(`[${locale.replace(/-/g, "_")}.`) ||
+        s.startsWith("[missing") ||
+        s.startsWith("translation missing:") ||
+        s === key
+      ) {
+        return undefined;
+      }
+    }
+
+    return v;
+  } finally {
+    if (hasLocaleProp) I18n.locale = oldLocale;
+    if (canToggleFallback) I18n.enableFallback = oldEnableFallback;
+  }
+}
+
+function hasNonEmptyTranslation(locale, lang, key) {
+  const v1 = tNoFallbackForLocale(locale, key);
+  if (typeof v1 === "string") return v1.trim().length > 0;
+  if (v1 != null) return true;
+
+  const v2 = lang && lang !== locale ? tNoFallbackForLocale(lang, key) : undefined;
+  if (typeof v2 === "string") return v2.trim().length > 0;
+  return v2 != null;
 }
 
 function probeTranslation(locale, lang, key) {
@@ -75,6 +125,9 @@ function probeTranslation(locale, lang, key) {
     rootLang && Object.prototype.hasOwnProperty.call(rootLang, key) ? rootLang[key] : undefined;
 
   const i18nValue = safeI18nT(key);
+  const i18nNoFallbackLocale = tNoFallbackForLocale(locale, key);
+  const i18nNoFallbackLang = lang && lang !== locale ? tNoFallbackForLocale(lang, key) : undefined;
+
 
   const leaf = String(key || "").split(".").slice(-1)[0] || "";
   const localeHints = rootLocale
@@ -93,6 +146,8 @@ function probeTranslation(locale, lang, key) {
     lang,
     key,
     i18nValue,
+    i18nNoFallbackLocale,
+    i18nNoFallbackLang,
     vLocaleWalk,
     vLangWalk,
     vLocaleFlat,
